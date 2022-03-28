@@ -6,5 +6,13 @@ Aionuts
 
 Таких библиотек для АПИ Вконтакте 1000 и 1 штука, хз что вы тут забыли
 
+Как заюзать:
+
+1. В папке с проектом прописать:
+git submodule add https://github.com/filimanistr/aionuts
+
+2. Все. Примеры использования и проч инфа coming soon
+
+
 TO-DO / main task:
-Get things to work :D
+fix asynchronous
