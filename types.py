@@ -17,6 +17,8 @@ class Message(Update):
         '''Initialize the variables for a work with the messages'''
         super().__init__(vkbot, event)
 
+        self.prefix = ''
+        self.command = False
         if event.type == 'message_new':
             self.text = event.object.message.text
             self.peer_id = event.object.message.peer_id
@@ -28,6 +30,30 @@ class Message(Update):
                 self.reply_message_text = event.object.message.reply_message.text
                 self.reply_message_from_id = event.object.message.reply_message.from_id
                 self.reply_message_conversation_message_id = event.object.message.reply_message.conversation_message_id
+
+    def get_args(self):
+        if self.command == False:
+            return self.text
+        else:
+            if len(self.prefix) == 1:
+                text = self.text.split(' ', 1)
+                if len(text) == 1: return ''
+                else: return text[1]
+            else:
+                text = self.text.split(' ', 2)
+                if len(text) == 2: return ''
+                else: return text[2]
+
+
+    def is_command(self):
+        return self.command
+
+    def get_command(self):
+        if self.command:
+            if len(self.prefix) == 1:
+                return self.text.split(' ', 1)[0][1]
+            else:
+                return self.text.split(' ', 2)[1]
 
     async def answer(self, message, **kwargs):
         '''Send a message to a user'''
@@ -46,6 +72,7 @@ class Callback(Message):
     def __init__(self, vkbot, event):
         super().__init__(vkbot, event)
 
+        self.is_command = False
         self.type == event.type
         self.user_id = event.object.user_id
         self.peer_id = event.object.peer_id
@@ -54,6 +81,9 @@ class Callback(Message):
         self.conversation_message_id = event.object.conversation_message_id
 
         self.callback = self.payload['callback']
+
+    def is_command(self):
+        return self.is_command
 
     def _split_callback(self, event, **kwargs):
         callback = {'user_id': self.message.user_id, 'event': event}
@@ -65,7 +95,7 @@ class Callback(Message):
         await self.vkbot.call('messages.send', peer_id=self.peer_id, random_id=self.random_id, message=message, d=kwargs)
 
     async def edit(self, message, **kwargs):
-        
+        '''Doing something'''
         await self.vkbot.call('messages.edit', conversation_message_id=self.conversation_message_id,
                 peer_id=self.peer_id, message=message, d=kwargs)
 

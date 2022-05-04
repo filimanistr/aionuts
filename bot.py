@@ -11,38 +11,16 @@ from .vkapi.utils import *
 from .handler import Handler
 from .types import Message, Callback, Update
 
-
 def start_polling(bot):
     uvloop.install()
     loop = asyncio.get_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.create_task(bot.vkbot.lp_loop(longpoll, bot))
+    loop.run_forever()
 
-    try:
-        queue = asyncio.LifoQueue() # Тут собираются апдейты от вк
-        loop.create_task(bot.vkbot.lp_loop(longpoll, queue))
-        loop.create_task(bot.start_polling(queue))
-        loop.run_forever()
-    except (KeyboardInterrupt, SystemExit):
-        # loop.stop()
-        pass
-
-'''
-def start_polling(bot):
-    uvloop.install()
-    loop = asyncio.get_event_loop()
-
-    try:
-        loop.create_task(bot.vkbot.lp_loop(longpoll, bot))
-        loop.run_forever()
-    except (KeyboardInterrupt, SystemExit):
-        # loop.stop()
-        pass
-'''
-
-async def longpoll(event, queue):
+async def longpoll(event, bot):
     print(event)
-    await queue.put(event)
-    # asyncio.create_task(bot.process_event(event))
-
+    asyncio.create_task(bot.process_event(event))
 
 class Bot:
     def __init__(self, TOKEN, ID):
@@ -50,16 +28,8 @@ class Bot:
         self.message_handlers = Handler()
         self.callback_handlers = Handler()
 
-    async def start_polling(self, queue):
-        self._polling = True
-
-        while self._polling:
-            event = await queue.get()
-            asyncio.create_task(self.process_event(event))
-
     async def process_event(self, event):
         '''Process updates received from long-polling'''
-        '''Сжечь все н, и написать заново'''
         update = D(event)
         update = Update(self.vkbot, update)
         if update.type == 'message_new':

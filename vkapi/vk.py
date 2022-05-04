@@ -9,19 +9,23 @@ import aiohttp
 main_funcs=['call', 'send', 'lp_loop']
 class vkmain:
     def __init__(self, token, id, is_group = False):
+        self.session = None
         self.token = token
         self.is_grp = is_group
         self.lp = None
         self.id = id
+
+    async def get_session(self):
+        self.session = aiohttp.ClientSession()
 
     async def call(self, method, d={}, **args):
         param = {'v':'5.131','access_token':self.token}
         param.update(d)
         param.update(args)
         url = 'https://api.vk.com/method/'+method
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=param) as ret:
-                resp = await ret.json()
+
+        async with self.session.post(url, data=param) as ret:
+            resp = await ret.json()
 
         if 'error' in resp.keys():
             raise Exception('VkError: '+str(resp['error']))
@@ -50,6 +54,7 @@ class vkmain:
             return await self.GetLP()
 
     async def lp_loop(self, func, *args):
+        await self.get_session()
         self.lp = await self.GetLP()
         sv = None
         while True:
