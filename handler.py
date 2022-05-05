@@ -21,9 +21,9 @@ class Handler:
 
     '''will be fixed, its temporary solutiion'''
 
-    def listify(x):
+    def listify(self, x):
         """ Try hard to convert x into a list """
-        if x != list:
+        if type(x) != list:
             return [x]
         else:
             return [_ for _ in x]
@@ -57,17 +57,27 @@ class Handler:
 
 
     async def check_filters(self, update, filters):
+        for key, value in filters.items():
+            filters[key] = self.listify(value)
+
+        if 'ignore_case' in filters.keys():
+            '''Ignore case for prefixes and commands'''
+            if filters['ignore_case'] == [True]:
+                update.text = update.text.lower()
+                for key, value in filters.items():
+                    for v in value:
+                        if type(v) == str:
+                            filters[key] == v.lower()
+
         if 'prefixes' in filters.keys():
-            if type(filters['prefixes']) == list:
-                for prefix in filters['prefixes']:
-                    if await self.check_filter(update.text, prefix) == False:
-                        return False
-                    else:
-                        break
-            else:
-                prefix = filters['prefixes']
-                if await self.check_filter(update.text, filters['prefixes']) == False:
-                    return False
+            for prefix in filters['prefixes']:
+                state = await self.check_filter(update.text, prefix)
+                if state == True:
+                    break
+
+            if state == False:
+                return False
+
         else:
             prefix = '/'
 
@@ -75,13 +85,13 @@ class Handler:
         for key, value in filters.items():
             if key == 'commands':
                 update.command = True
-                if type(value) == list:
-                    for com in value:
-                        if await self.check_filter_2(update.text, com, prefix) == False:
-                            return False
-                else:
-                    if await self.check_filter_2(update.text, value, prefix) == False:
-                        return False
+                for com in value:
+                    state = await self.check_filter_2(update.text, com, prefix)
+                    if state == True:
+                        break
+
+                if state == False:
+                    return False
 
             udict = update.__dict__
             if key in udict.keys():
