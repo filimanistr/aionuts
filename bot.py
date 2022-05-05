@@ -11,9 +11,11 @@ from .vkapi.utils import *
 from .handler import Handler
 from .types import Message, Callback, Update
 
-def start_polling(bot):
+def start_polling(bot, loop=None):
     uvloop.install()
-    loop = asyncio.get_event_loop()
+    if loop == None:
+        loop = asyncio.get_event_loop()
+
     asyncio.set_event_loop(loop)
     loop.create_task(bot.vkbot.lp_loop(longpoll, bot))
     loop.run_forever()

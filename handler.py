@@ -4,6 +4,8 @@ import asyncio
 from . import types
 
 class Prefix():
+    # Prefix - a word, letter, or number places before another
+    # Default prefix is /
     pass
 
 class Command():
