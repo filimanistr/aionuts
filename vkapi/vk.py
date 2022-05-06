@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import requests,json,time,random,os,traceback,sys
+import json,time,random,os,traceback,sys
 from .utils import *
 from .colors import *
 

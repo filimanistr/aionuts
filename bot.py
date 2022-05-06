@@ -1,8 +1,7 @@
 # -*- config: utf-8 -*-
 
-import asyncio, uvloop
+import asyncio
 import json, random
-from urllib.request import urlopen
 from functools import partial
 
 from .vkapi import vk
@@ -11,8 +10,14 @@ from .vkapi.utils import *
 from .handler import Handler
 from .types import Message, Callback, Update
 
+def uvloop():
+    try:
+        import uvloop
+    except ImportError:
+        return
+
 def start_polling(bot, loop=None):
-    uvloop.install()
+    uvloop()
     if loop == None:
         loop = asyncio.get_event_loop()
 

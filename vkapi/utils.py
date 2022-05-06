@@ -1,4 +1,4 @@
-import sys, json, requests, random, string
+import sys, json, random, string
 from threading import Thread
 
 class DictWrap:
