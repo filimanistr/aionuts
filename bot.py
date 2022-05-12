@@ -46,14 +46,16 @@ class Bot:
             callback = Callback(self.vkbot, event)
             await self.callback_handlers.notify(callback)
 
-    def message_handler(self, **kwargs):
+    def message_handler(self, ignore_case=False, **kwargs):
         def decorator(callback):
+            kwargs.update({'ignore_case':ignore_case})
             self.message_handlers.register(callback, kwargs)
             return callback
         return decorator
 
-    def callback_handler(self, **kwargs):
+    def callback_handler(self, ignore_case=False, **kwargs):
         def decorator(callback):
+            kwargs.update({'ignore_case':ignore_case})
             self.callback_handlers.register(callback, kwargs)
             return callback
         return decorator

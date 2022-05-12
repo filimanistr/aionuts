@@ -17,7 +17,7 @@ class Message(Update):
         '''Initialize the variables for a work with the messages'''
         super().__init__(vkbot, event)
 
-        self.prefix = ''
+        self.prefix = '/'
         self.command = False
         if event.type == 'message_new':
             self.text = event.object.message.text
@@ -54,6 +54,12 @@ class Message(Update):
                 return self.text.split(' ', 1)[0][1]
             else:
                 return self.text.split(' ', 2)[1]
+
+    def get_prefix(self):
+        if len(self.prefix) == 1:
+            return self.text.split(' ')[0][0]
+        else:
+            return self.text.split(' ')[0]
 
     async def answer(self, message, **kwargs):
         '''Send a message to a user'''

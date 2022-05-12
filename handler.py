@@ -4,22 +4,55 @@ import asyncio
 from . import types
 
 class Prefix():
-    # Prefix - a word, letter, or number places before another
-    # Default prefix is /
-    pass
+    '''Prefix - a word, letter, or number places before another'''
+    def check(self, message, prefix, ignore_case):
+        message.prefix = prefix # value in filter
+        text = message.get_prefix() # value from vk message
+        if ignore_case:
+            prefix = prefix.lower()
+            text = text.lower()
+
+        if text == prefix:
+            return True
+        return False
 
 class Command():
-    pass
+    def check(self, message, command, ignore_case):
+        message.command = True
+        text = message.get_command()
+        if ignore_case:
+            command = command.lower() # value in filter
+            text = text.lower() # value from vk message
+
+        if text == command:
+            return True
+        return False
+
+class Default():
+    '''compare filters with vk longpoll
+    peer_id, text, from_id and other stuff'''
+    def check(self, update, key, value, ignore_case):
+        update = update.__dict__
+        if ignore_case:
+            value = value.lower()
+
+        if key in update.keys():
+            if update[key] == value:
+                return True
+        return False
 
 class Handler:
     def __init__(self):
         self.handlers = []
+        self.filters = {'prefixes': Prefix(),
+                        'commands': Command()}
 
     def register(self, handler, kwargs):
+        for key, value in kwargs.items():
+            kwargs[key] = self.listify(value)
+
         record = Handler.HandlerObj(handler=handler, filters=kwargs)
         self.handlers.append(record)
-
-    '''will be fixed, its temporary solutiion'''
 
     def listify(self, x):
         """ Try hard to convert x into a list """
@@ -28,85 +61,39 @@ class Handler:
         else:
             return [_ for _ in x]
 
-    async def check_filter(self, text, prefix):
-        if len(prefix) == 1:
-            if text[0] != prefix:
-                return False
-        else:
-            text = text.split(' ')
-            if text[0] != prefix:
-                return False
+    async def check_filter(self, update, filters, ignore_case, cls):
+        for value in filters:
+            if cls.check(update, value, ignore_case):
+                return True
+        return False
 
+    async def check_defaults(self, update, filters):
+        cls = Default()
+        for key in filters.keys():
+            if key not in self.filters.keys() and key != 'ignore_case':
+                for value in filters[key]:
+                    if cls.check(update, key, value, filters['ignore_case'][0]):
+                        break
+                    else:
+                        return False
         return True
-
-    async def check_filter_2(self, text, com, prefix):
-        text = text.split(' ')
-        if len(prefix) == 1:
-            if len(text[0]) == 1:
-                return False
-            if text[0][1:] != com:
-                return False
-
-        else:
-            if len(text) == 1:
-                return False
-            if text[1] != com:
-                return False
-
-        return True
-
 
     async def check_filters(self, update, filters):
-        for key, value in filters.items():
-            filters[key] = self.listify(value)
-
-        if 'ignore_case' in filters.keys():
-            '''Ignore case for prefixes and commands'''
-            if filters['ignore_case'] == [True]:
-                update.text = update.text.lower()
-                for key, value in filters.items():
-                    for v in value:
-                        if type(v) == str:
-                            filters[key] == v.lower()
-
-        if 'prefixes' in filters.keys():
-            for prefix in filters['prefixes']:
-                state = await self.check_filter(update.text, prefix)
-                if state == True:
-                    break
-
-            if state == False:
-                return False
-
-        else:
-            prefix = '/'
-
-        update.prefix = prefix
-        for key, value in filters.items():
-            if key == 'commands':
-                update.command = True
-                for com in value:
-                    state = await self.check_filter_2(update.text, com, prefix)
-                    if state == True:
-                        break
-
-                if state == False:
+        for key, value in self.filters.items():
+            if key in filters.keys():
+                args = (update, filters[key], filters['ignore_case'][0], value)
+                passed = await self.check_filter(*args)
+                if passed == False:
                     return False
 
-            udict = update.__dict__
-            if key in udict.keys():
-                if udict[key] != value:
-                    return False
-
+        if await self.check_defaults(update, filters) == False:
+            return False
         return True
 
     async def notify(self, event):
-        # update = event.__dict__
-        update = event
         for handler in self.handlers:
-            if await self.check_filters(update, handler.filters):
+            if await self.check_filters(event, handler.filters):
                 await handler.handler(event)
-
 
     @dataclass
     class HandlerObj:
