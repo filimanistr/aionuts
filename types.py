@@ -1,6 +1,5 @@
 import asyncio
-from .vkapi import vk
-from .vkapi.utils import *
+import random
 
 class Update:
     def __init__(self, vkbot, event):

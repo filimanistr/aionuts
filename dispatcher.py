@@ -1,0 +1,47 @@
+# -*- config: utf-8 -*-
+
+import asyncio
+import json, random
+from functools import partial
+
+from .utils.utils import *
+
+from .handler import Handler
+from .types import Message, Callback, Update
+
+async def longpoll(event, dp):
+    print(event)
+    asyncio.create_task(dp.process_event(event))
+
+class Dispatcher:
+    '''a person who is responsible for sending
+    out something to where they are needed'''
+    def __init__(self, bot):
+        self.vkbot = bot
+        self.message_handlers = Handler()
+        self.callback_handlers = Handler()
+
+    async def process_event(self, event):
+        '''Process updates received from long-polling'''
+        update = D(event)
+        update = Update(self.vkbot, update)
+        if update.type == 'message_new':
+            message = Message(self.vkbot, event)
+            await self.message_handlers.notify(message)
+        if event.type == 'message_event':
+            callback = Callback(self.vkbot, event)
+            await self.callback_handlers.notify(callback)
+
+    def message_handler(self, ignore_case=False, **kwargs):
+        def decorator(callback):
+            kwargs.update({'ignore_case':ignore_case})
+            self.message_handlers.register(callback, kwargs)
+            return callback
+        return decorator
+
+    def callback_handler(self, ignore_case=False, **kwargs):
+        def decorator(callback):
+            kwargs.update({'ignore_case':ignore_case})
+            self.callback_handlers.register(callback, kwargs)
+            return callback
+        return decorator
