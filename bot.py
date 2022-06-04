@@ -4,6 +4,7 @@ import aiohttp
 import traceback
 from .utils.utils import *
 from .utils.colors import *
+from asyncio import CancelledError
 
 main_funcs=['call', 'send', 'lp_loop_gen']
 class vkmain:
@@ -69,6 +70,10 @@ class vkmain:
                         yield result
                 else:
                     yield None
+            except CancelledError:
+                print('shutting down')
+                await self.session.close()
+                break
             except Exception as e:
                 print_c(RED+'error:')
                 traceback.print_exc()
