@@ -9,9 +9,6 @@ from .utils.utils import *
 from .handler import Handler
 from .types import Message, Callback, Update
 
-async def longpoll(event, dp):
-    print(event)
-    asyncio.create_task(dp.process_event(event))
 
 class Dispatcher:
     '''a person who is responsible for sending
@@ -20,6 +17,15 @@ class Dispatcher:
         self.vkbot = bot
         self.message_handlers = Handler()
         self.callback_handlers = Handler()
+
+    async def start_polling(self):
+        '''Recieves events from the generator
+        and creates tasks to process them'''
+        request = self.vkbot.lp_loop_gen()
+        async for event in request:
+            if event is not None:
+                print(event)
+                asyncio.create_task(self.process_event(event))
 
     async def process_event(self, event):
         '''Process updates received from long-polling'''

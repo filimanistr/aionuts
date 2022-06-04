@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-import json,time,random,os,traceback,sys
+import random
+import aiohttp
+import traceback
 from .utils.utils import *
 from .utils.colors import *
 
-import asyncio
-import aiohttp
-
-main_funcs=['call', 'send', 'lp_loop']
+main_funcs=['call', 'send', 'lp_loop_gen']
 class vkmain:
     def __init__(self, token, id, is_group = False):
         self.session = None
@@ -23,7 +22,6 @@ class vkmain:
         param.update(d)
         param.update(args)
         url = 'https://api.vk.com/method/'+method
-
         async with self.session.post(url, data=param) as ret:
             resp = await ret.json()
 
@@ -36,7 +34,6 @@ class vkmain:
         if ln > 4096:
             mess=[]
             for i in range(int(ln/4096)+1):
-                await asyncio.sleep(1)
                 await self.call('messages.send',peer_id=snd,message=text[i*4096:(i+1)*4096],random_id=random.randint(0,2**10))
             return True
         else: return await self.call('messages.send',peer_id=snd,message=text,attachment=attach,random_id=random.randint(0,2**10))
@@ -50,33 +47,33 @@ class vkmain:
         except Exception as e:
             print_c(RED+'longpoll error: ')
             traceback.print_exc()
-            await asyncio.sleep(5)
             return await self.GetLP()
 
-    async def lp_loop(self, func, *args):
+    async def lp_loop_gen(self):
         await self.get_session()
         self.lp = await self.GetLP()
         sv = None
+
+        if self.is_grp: t = '{}?act=a_check&key={}&ts={}&wait=25&mode=2&version=3'
+        else: t = 'http://{}?act=a_check&key={}&ts={}&wait=25&mode=2&version=3'
         while True:
             try:
-                if self.is_grp: sv='%s?act=a_check&key=%s&ts=%s&wait=25&mode=2&version=3'%(self.lp.server, self.lp.key, self.lp.ts)
-                else: sv='http://%s?act=a_check&key=%s&ts=%s&wait=25&mode=2&version=3'%(self.lp.server,self.lp.key,self.ts)
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(sv) as ret:
-                        resp = await ret.json()
+                sv = t.format(self.lp.server, self.lp.key, self.lp.ts)
+                async with self.session.get(sv) as ret:
+                    resp = await ret.json()
 
                 response = D(resp)
                 if response:
                     self.lp.ts=response.ts
                     for result in response.updates:
-                        await func(result, *args)
-            except KeyboardInterrupt:
-                print_c(GREEN+'Ctrl+C')
-                exit()
+                        yield result
+                else:
+                    yield None
             except Exception as e:
                 print_c(RED+'error:')
                 traceback.print_exc()
                 self.lp = await self.GetLP( )
+                yield None
 
 class Bot:
     class _submethod:

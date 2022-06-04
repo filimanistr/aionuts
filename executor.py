@@ -1,5 +1,4 @@
 import asyncio
-from .dispatcher import longpoll
 
 def uvloop():
     try:
@@ -13,6 +12,6 @@ def start_polling(dp, loop=None):
         loop = asyncio.get_event_loop()
 
     asyncio.set_event_loop(loop)
-    loop.create_task(dp.vkbot.lp_loop(longpoll, dp))
+    loop.create_task(dp.start_polling())
     loop.run_forever()
 
