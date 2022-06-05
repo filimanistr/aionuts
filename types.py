@@ -4,10 +4,12 @@ import random
 class Update:
     def __init__(self, vkbot, event):
         self.vkbot = vkbot
-
         self.type = event.type
-        self.random_id = random.randint(0,2**10)
         self.group_id = event.group_id
+
+    @property
+    def random_id(self):
+        return random.randint(0,2**10)
 
 
 class Message(Update):
@@ -19,6 +21,7 @@ class Message(Update):
         self.prefix = '/'
         self.command = False
         if event.type == 'message_new':
+            self.id = event.object.message.id
             self.text = event.object.message.text
             self.peer_id = event.object.message.peer_id
             self.from_id = event.object.message.from_id
@@ -43,7 +46,6 @@ class Message(Update):
                 if len(text) == 2: return ''
                 else: return text[2]
 
-
     def is_command(self):
         return self.command
 
@@ -65,16 +67,34 @@ class Message(Update):
 
     async def answer(self, message, **kwargs):
         '''Send a message to a user'''
-        await self.vkbot.call('messages.send', peer_id=self.peer_id, random_id=self.random_id, message=message, d=kwargs)
-        self.random_id = random.randint(0,2**10)
+        await self.vkbot.call('messages.send',
+                              peer_id=self.peer_id,
+                              random_id=self.random_id,
+                              message=message,
+                              d=kwargs)
+
+    async def reply(self, message, **kwargs):
+        await self.vkbot.call('messages.send',
+                              peer_id=self.peer_id,
+                              random_id=self.random_id,
+                              reply_to=self.id,
+                              message=message,
+                              d=kwargs)
 
     async def edit(self, message, **kwargs):
-        await self.vkbot.call('messages.edit', conversation_message_id=cmi, peer_id=peer_id, message=message, d=kwargs)
+        await self.vkbot.call('messages.edit',
+                conversation_message_id=self.conversation_message_id,
+                peer_id=self.peer_id,
+                message=message,
+                d=kwargs)
 
     async def delete(self):
         '''Delete a message'''
-        await vkbot.messages.delete(conversation_message_ids=self.conversation_message_id,
-                delete_for_all=1, peer_id=self.peer_id, group_id=self.group_id)
+        await vkbot.messages.delete(
+                conversation_message_ids=self.conversation_message_id,
+                delete_for_all=1,
+                peer_id=self.peer_id,
+                group_id=self.group_id)
 
 class Callback(Message):
     def __init__(self, vkbot, event):
