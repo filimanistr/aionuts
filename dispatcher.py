@@ -51,3 +51,7 @@ class Dispatcher:
             self.callback_handlers.register(callback, kwargs)
             return callback
         return decorator
+
+    def register_message_handler(self, func, ignore_case=False, **kwargs):
+        kwargs.update({'ignore_case':ignore_case})
+        self.message_handlers.register(func, kwargs)
