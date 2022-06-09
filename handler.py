@@ -3,49 +3,53 @@ import asyncio
 
 from . import types
 
-class Prefix():
-    '''Prefix - a word, letter, or number places before another'''
-    def check(self, message, prefix, ignore_case):
-        message.prefix = prefix # value in filter
-        text = message.get_prefix() # value from vk message
-        if ignore_case:
-            prefix = prefix.lower()
-            text = text.lower()
-
-        if text == prefix:
-            return True
-        return False
-
 class Command():
-    def check(self, message, command, ignore_case):
-        message.command = True
-        text = message.get_command()
-        if ignore_case:
-            command = command.lower() # value in filter
-            text = text.lower() # value from vk message
+    def get_prefix(self, message, filters):
+        prefix = message.text.split()[0]
+        if filters.get('ignore_case')[0] is True:
+            prefix = prefix.lower()
 
-        if text == command:
+        if filters.get('prefixes') is None:
+            return '/' if prefix[0] == '/' else None
+        if prefix in filters['prefixes']:
+            return prefix
+        if prefix[0] in filters['prefixes']:
+            return prefix[0]
+        return None
+
+    def check(self, message, filters):
+        prefix = self.get_prefix(message, filters)
+        if prefix is None:
+            return False
+
+        message.prefix = prefix
+        message.command = True
+        command = message.get_command()
+        commands = filters['commands']
+        if filters.get('ignore_case')[0] is True:
+            command = command.lower()
+
+        if command in commands:
             return True
         return False
 
 class Default():
     '''compare filters with vk longpoll
     peer_id, text, from_id and other stuff'''
-    def check(self, update, key, value, ignore_case):
+    def check(self, update, filters, f):
         update = update.__dict__
-        if ignore_case:
-            value = value.lower()
+        if filters.get('ignore_case')[0] is True:
+            if type(update[f]) is str:
+                update[f] = update[f].lower()
 
-        if key in update.keys():
-            if update[key] == value:
-                return True
+        if update[f] in filters[f]:
+            return True
         return False
 
 class Handler:
     def __init__(self):
         self.handlers = []
-        self.filters = {'prefixes': Prefix(),
-                        'commands': Command()}
+        self.filters = {'commands': Command()}
 
     def register(self, handler, kwargs):
         for key, value in kwargs.items():
@@ -61,33 +65,18 @@ class Handler:
         else:
             return [_ for _ in x]
 
-    async def check_filter(self, update, filters, ignore_case, cls):
-        for value in filters:
-            if cls.check(update, value, ignore_case):
-                return True
-        return False
-
-    async def check_defaults(self, update, filters):
-        cls = Default()
-        for key in filters.keys():
-            if key not in self.filters.keys() and key != 'ignore_case':
-                for value in filters[key]:
-                    if cls.check(update, key, value, filters['ignore_case'][0]):
-                        break
-                    else:
-                        return False
-        return True
-
     async def check_filters(self, update, filters):
-        for key, value in self.filters.items():
-            if key in filters.keys():
-                args = (update, filters[key], filters['ignore_case'][0], value)
-                passed = await self.check_filter(*args)
-                if passed == False:
+        for f, value in filters.items():
+            if f in self.filters.keys():
+                cls = self.filters[f]
+                if cls.check(update, filters) == False:
                     return False
 
-        if await self.check_defaults(update, filters) == False:
-            return False
+            elif f in update.__dict__.keys():
+                cls = Default()
+                if cls.check(update, filters, f) == False:
+                    return False
+
         return True
 
     async def notify(self, event):

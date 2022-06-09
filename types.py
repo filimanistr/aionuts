@@ -53,7 +53,7 @@ class Message(Update):
         if self.command:
             try:
                 if len(self.prefix) == 1:
-                    return self.text.split(' ', 1)[0][1]
+                    return self.text.split(' ', 1)[0][1:]
                 else:
                     return self.text.split(' ', 2)[1]
             except IndexError:
