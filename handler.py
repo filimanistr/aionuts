@@ -6,7 +6,7 @@ from . import types
 class Command():
     def get_prefix(self, message, filters):
         prefix = message.text.split()[0]
-        if filters.get('ignore_case')[0] is True:
+        if filters.get('ignore_case') is [True]:
             prefix = prefix.lower()
 
         if filters.get('prefixes') is None:
@@ -26,7 +26,7 @@ class Command():
         message.command = True
         command = message.get_command()
         commands = filters['commands']
-        if filters.get('ignore_case')[0] is True:
+        if filters.get('ignore_case') is [True]:
             command = command.lower()
 
         if command in commands:
@@ -35,7 +35,7 @@ class Command():
 
 class ChatType():
     def check(self, message, filters):
-        if filters['chat_type'][0] == 'private':
+        if filters['chat_type'] == ['private']:
             if message.peer_id < 2000000000:
                 return True
         return False
@@ -45,7 +45,7 @@ class Default():
     peer_id, text, from_id and other stuff'''
     def check(self, update, filters, f):
         update = update.__dict__
-        if filters.get('ignore_case')[0] is True:
+        if filters.get('ignore_case') is [True]:
             if type(update[f]) is str:
                 update[f] = update[f].lower()
 
