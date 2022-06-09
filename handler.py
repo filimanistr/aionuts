@@ -33,6 +33,13 @@ class Command():
             return True
         return False
 
+class ChatType():
+    def check(self, message, filters):
+        if filters['chat_type'][0] == 'private':
+            if message.peer_id < 2000000000:
+                return True
+        return False
+
 class Default():
     '''compare filters with vk longpoll
     peer_id, text, from_id and other stuff'''
@@ -49,7 +56,8 @@ class Default():
 class Handler:
     def __init__(self):
         self.handlers = []
-        self.filters = {'commands': Command()}
+        self.filters = {'commands': Command(),
+                        'chat_type': ChatType()}
 
     def register(self, handler, kwargs):
         for key, value in kwargs.items():
