@@ -91,6 +91,7 @@ class Handler:
         for handler in self.handlers:
             if await self.check_filters(event, handler.filters):
                 await handler.handler(event)
+                return None
 
     @dataclass
     class HandlerObj:
