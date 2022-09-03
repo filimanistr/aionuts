@@ -3,6 +3,7 @@ import random
 
 class Update:
     def __init__(self, vkbot, event):
+        self.event = event
         self.vkbot = vkbot
         self.type = event.type
         self.group_id = event.group_id
