@@ -4,3 +4,6 @@ dist/
 build/
 
 examples/env
+
+aionuts/__pycache__/
+aionuts/utils/__pycache__/
