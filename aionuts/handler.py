@@ -24,6 +24,7 @@ class Command():
                 return False
         else:
             prefix = "";
+            return False
 
         message.prefix = prefix
         message.command = True
