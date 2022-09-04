@@ -18,9 +18,12 @@ class Command():
         return None
 
     def check(self, message, filters):
-        prefix = self.get_prefix(message, filters)
-        if prefix is None:
-            return False
+        if message.text != "":
+            prefix = self.get_prefix(message, filters)
+            if prefix is None:
+                return False
+        else:
+            prefix = "";
 
         message.prefix = prefix
         message.command = True
