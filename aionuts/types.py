@@ -1,12 +1,15 @@
-import asyncio
 import random
+import json
 
 class Update:
     def __init__(self, vkbot, event):
-        self.event = event
         self.vkbot = vkbot
+        self.event = event
         self.type = event.type
         self.group_id = event.group_id
+
+    def __getattr__(self, atr):
+        pass
 
     @property
     def random_id(self):
@@ -102,7 +105,6 @@ class Callback(Message):
         super().__init__(vkbot, event)
 
         self.is_command = False
-        self.type == event.type
         self.user_id = event.object.user_id
         self.peer_id = event.object.peer_id
         self.event_id = event.object.event_id
@@ -129,48 +131,42 @@ class Callback(Message):
                 peer_id=self.peer_id, message=message, d=kwargs)
 
 
-class Keyboard():
-    '''Keyboard class that implements the keyboard in easiest way'''
-    def __init__(self, inline, keyboard=None):
-        '''Defines the new clear keyboard and sets the type of it - inline or not
+class InlineKeyboard:
+    # Fix later. 
+    # It wont be useful if the users use it
+    # the same way they use the aiogram's keyboards
+    """Keyboard class that implements inline keyboard"""
+    def __init__(self, row_width=3, keyboard=None):
+        '''Defines the new clear keyboard and row_width
         If the keyboard attribute was set - convert it into python dict object'''
-        if keyboard != None: self.keyboard = json.loads(keyboard)
-        else: self.keyboard = {"inline":inline, "buttons":[]}
+        if keyboard is not None:
+            self.keyboard = json.loads(keyboard)
+        self.keyboard = {"inline":True, "buttons":[]}
+        self.row_width = row_width
 
     def __repr__(self):
-        '''Returns the keyboard'''
+        """Returns the keyboard (str object)"""
         return json.dumps(self.keyboard)
 
-    def add_column(self, type_, payload, label, color):
+    def add(self, *args):
+        """Adds buttons to the table"""
+        for button in args:
+            if args.index(button)+1 % self.row_width == 0:
+                self.keyboard._add_column()
+        return self
+
+    def _add_column(self, label, callback, color, type_='callback', callback_data=None):
         '''Adds button to the right'''
+        payload = self.callback(callback, callback_data)
         if len(self.keyboard['buttons']) == 0: self.keyboard['buttons'].append([])
         self.keyboard['buttons'][0].append({'action':{'type':type_, 'payload':payload, 'label':label}, 'color':color})
 
-    def add_row(self, type_, payload, label, color):
+    def _add_row(self, label, callback, color, type_='callback', callback_data=None):
         '''Adds button to the buttom)'''
+        payload = self._callback(callback, callback_data)
         self.keyboard["buttons"].append([{"action":{"type":type_, "payload":payload, "label":label}, "color":color}])
 
-class InlineKeyboard:
-    '''Клавиатура только калл бэковская изначально (обрезание, ой т.е. инкапсуляция)'''
-    def __init__(self):
-        self.keyboard = {"inline":True, "buttons":[]}
-
-    def __repr__(self):
-        '''Returns the keyboard'''
-        return json.dumps(self.keyboard)
-
-    def add_column(self, text, callback, color, callback_data=None):
-        '''Adds button to the right'''
-        payload = self.callback(callback, callback_data)
-        if len(self.keyboard['buttons']) == 0: self.keyboard['buttons'].append([])
-        self.keyboard['buttons'][0].append({'action':{'type':'callback', 'payload':payload, 'label':text}, 'color':color})
-
-    def add_row(self, text, callback, color, callback_data=None):
-        '''Adds button to the buttom)'''
-        payload = self.callback(callback, callback_data)
-        self.keyboard["buttons"].append([{"action":{"type":'callback', "payload":payload, "label":text}, "color":color}])
-
-    def callback(self, payload, callback_data):
+    def _callback(self, payload, callback_data):
         '''Делает из 2 каллов 1 калл'''
         callback = dict()
         callback['callback'] = payload
@@ -180,7 +176,6 @@ class InlineKeyboard:
 
         return callback
 
-'''
 class InlineKeyboardButton:
-    def __init__(self, text, callback, callback_data=None):
-'''
+    def __init__(self, label, callback, callback_data=None):
+        pass
