@@ -2,6 +2,7 @@
 
 import asyncio
 from .handler import Handler
+from .middlewares import Middleware
 from ..utils.utils import *
 from ..types import Message
 
@@ -10,7 +11,8 @@ class Dispatcher:
     """Responsible for sending out something to where it is needed"""
     def __init__(self, bot):
         self.vkbot = bot
-        self.message_handlers = Handler()
+        self.middleware = Middleware()
+        self.message_handlers = Handler(self.middleware)
 
     async def start_polling(self):
         """Recieves events from the generator

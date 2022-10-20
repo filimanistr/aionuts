@@ -5,8 +5,9 @@ from ..utils.utils import *
 from .filters import *
 
 class Handler:
-    def __init__(self):
+    def __init__(self, middleware):
         self.handlers = []
+        self.middleware = middleware
         self.filters = {'commands': Command,
                         'chat_type': ChatType}
 
@@ -44,11 +45,18 @@ class Handler:
         and if they match - calls that function"""
         for handler in self.handlers:
             if await self.check_filters(event, handler.filters):
-                await handler.handler(event)
-                return None
-
+                try:
+                    await self.middleware.process_inner_middlewares(event)
+                    await handler.handler(event)
+                    return None
+                except CancelHandler:
+                    return None
 
     @dataclass
     class HandlerObj:
         handler: Callable
         filters: list[object]
+
+
+class CancelHandler(Exception):
+    pass
