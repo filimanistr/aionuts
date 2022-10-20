@@ -74,6 +74,12 @@ def download_file_single(url, filename, formats=[]):
 		return ''
 	return filename
 
+def listify(x):
+    """ Try hard to convert x into a list """
+    if type(x) != list:
+        return [x]
+    else:
+        return [_ for _ in x]
 
 #def download_files(urls, formats=[]):
 #	threads_max=10

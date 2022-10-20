@@ -1,29 +1,17 @@
 import random
-import json
 
-class Update:
+class Message:
+    """Object that represents a message, that Bot going to send,
+    or the message that is already was sent"""
     def __init__(self, vkbot, event):
+        """Initialize the variables for a work with the messages"""
         self.vkbot = vkbot
         self.event = event
         self.type = event.type
         self.group_id = event.group_id
 
-    def __getattr__(self, atr):
-        pass
-
-    @property
-    def random_id(self):
-        return random.randint(0,2**10)
-
-
-class Message(Update):
-    '''Object that represents a message, that Bot going to send, or the message that is already was sent'''
-    def __init__(self, vkbot, event):
-        '''Initialize the variables for a work with the messages'''
-        super().__init__(vkbot, event)
-
-        self.prefix = '/'
-        self.command = False
+        self.prefix = ""
+        self.command = None
         if event.type == 'message_new':
             self.id = event.object.message.id
             self.text = event.object.message.text
@@ -37,40 +25,58 @@ class Message(Update):
                 self.reply_message_from_id = event.object.message.reply_message.from_id
                 self.reply_message_conversation_message_id = event.object.message.reply_message.conversation_message_id
 
-    def get_args(self):
-        if self.command == False:
-            return self.text
-        else:
-            if len(self.prefix) == 1:
-                text = self.text.split(' ', 1)
-                if len(text) == 1: return ''
-                else: return text[1]
-            else:
-                text = self.text.split(' ', 2)
-                if len(text) == 2: return ''
-                else: return text[2]
+    def __getattr__(self, atr):
+        pass
+
+    @property
+    def random_id(self):
+        return random.randint(0,2**10)
 
     def is_command(self):
-        return self.command
+        if self.command is None:
+            return False
+        return True
+
+    def get_args(self):
+        """If message is a command, then this method will return message
+        without a command and a prefix inside the text. Example:
+        if message is `/help me pls`, then the return would be: `me pls`"""
+        if self.is_command() == False:
+            return self.text
+
+        if len(self.prefix) == 1:
+            text = self.text.split(' ', 1)
+            if len(text) > 1:
+                return text[1]
+
+        text = self.text.split(' ', 2)
+        if len(text) > 2:
+            return text[2]
+        return ""
 
     def get_command(self):
-        if self.command:
-            try:
-                if len(self.prefix) == 1:
-                    return self.text.split(' ', 1)[0][1:]
-                else:
-                    return self.text.split(' ', 2)[1]
-            except IndexError:
-                return ''
+        """If message is command and starts with: `/help` or `bot help`
+        the return string would be: `help`"""
+        if self.is_command() == False:
+            return None
+        try:
+            if len(self.prefix) == 1:
+                return self.text.split(' ', 1)[0][1:]
+            else:
+                return self.text.split(' ', 2)[1]
+        except IndexError:
+            return ''
 
     def get_prefix(self):
+        """If message is command and starts with: `/help` or `bot help`
+        then the return string would be: `/` or `bot`"""
         if len(self.prefix) == 1:
             return self.text.split(' ')[0][0]
         else:
             return self.text.split(' ')[0]
 
     async def answer(self, message, **kwargs):
-        '''Send a message to a user'''
+        """Send a message to a user, that sent a message"""
         await self.vkbot.call('messages.send',
                               peer_id=self.peer_id,
                               random_id=self.random_id,
@@ -78,6 +84,7 @@ class Message(Update):
                               d=kwargs)
 
     async def reply(self, message, **kwargs):
+        """Reply to a message, that had come to a bot"""
         await self.vkbot.call('messages.send',
                               peer_id=self.peer_id,
                               random_id=self.random_id,
@@ -93,89 +100,9 @@ class Message(Update):
                 d=kwargs)
 
     async def delete(self):
-        '''Delete a message'''
-        await vkbot.messages.delete(
+        await self.vkbot.messages.delete(
                 conversation_message_ids=self.conversation_message_id,
                 delete_for_all=1,
                 peer_id=self.peer_id,
                 group_id=self.group_id)
 
-class Callback(Message):
-    def __init__(self, vkbot, event):
-        super().__init__(vkbot, event)
-
-        self.is_command = False
-        self.user_id = event.object.user_id
-        self.peer_id = event.object.peer_id
-        self.event_id = event.object.event_id
-        self.payload = event.object.payload
-        self.conversation_message_id = event.object.conversation_message_id
-
-        self.callback = self.payload['callback']
-
-    def is_command(self):
-        return self.is_command
-
-    def _split_callback(self, event, **kwargs):
-        callback = {'user_id': self.message.user_id, 'event': event}
-        for key, value in kwargs.items(): callback[key] = value
-        return json.dumps(callback)
-
-    async def answer(self, message, **kwargs):
-        '''Send a message to a user'''
-        await self.vkbot.call('messages.send', peer_id=self.peer_id, random_id=self.random_id, message=message, d=kwargs)
-
-    async def edit(self, message, **kwargs):
-        '''Doing something'''
-        await self.vkbot.call('messages.edit', conversation_message_id=self.conversation_message_id,
-                peer_id=self.peer_id, message=message, d=kwargs)
-
-
-class InlineKeyboard:
-    # Fix later. 
-    # It wont be useful if the users use it
-    # the same way they use the aiogram's keyboards
-    """Keyboard class that implements inline keyboard"""
-    def __init__(self, row_width=3, keyboard=None):
-        '''Defines the new clear keyboard and row_width
-        If the keyboard attribute was set - convert it into python dict object'''
-        if keyboard is not None:
-            self.keyboard = json.loads(keyboard)
-        self.keyboard = {"inline":True, "buttons":[]}
-        self.row_width = row_width
-
-    def __repr__(self):
-        """Returns the keyboard (str object)"""
-        return json.dumps(self.keyboard)
-
-    def add(self, *args):
-        """Adds buttons to the table"""
-        for button in args:
-            if args.index(button)+1 % self.row_width == 0:
-                self.keyboard._add_column()
-        return self
-
-    def _add_column(self, label, callback, color, type_='callback', callback_data=None):
-        '''Adds button to the right'''
-        payload = self.callback(callback, callback_data)
-        if len(self.keyboard['buttons']) == 0: self.keyboard['buttons'].append([])
-        self.keyboard['buttons'][0].append({'action':{'type':type_, 'payload':payload, 'label':label}, 'color':color})
-
-    def _add_row(self, label, callback, color, type_='callback', callback_data=None):
-        '''Adds button to the buttom)'''
-        payload = self._callback(callback, callback_data)
-        self.keyboard["buttons"].append([{"action":{"type":type_, "payload":payload, "label":label}, "color":color}])
-
-    def _callback(self, payload, callback_data):
-        '''Делает из 2 каллов 1 калл'''
-        callback = dict()
-        callback['callback'] = payload
-        if callback_data != None:
-            for key, value in callback_data.items():
-                callback[key] = value
-
-        return callback
-
-class InlineKeyboardButton:
-    def __init__(self, label, callback, callback_data=None):
-        pass
